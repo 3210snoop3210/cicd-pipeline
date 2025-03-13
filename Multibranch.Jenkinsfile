@@ -5,7 +5,7 @@ pipeline {
         BRANCH_NAME = "${env.GIT_BRANCH}"
         IMAGE_NAME = "${BRANCH_NAME == 'main' ? 'nodemain:v1.0' : 'nodedev:v1.0'}"
         PORT = "${BRANCH_NAME == 'main' ? '3000' : '3001'}"
-        LOGO_PATH = "${BRANCH_NAME == 'main' ? 'logos/main_logo.svg' : 'logos/dev_logo.svg'}"
+        LOGO_PATH = "${BRANCH_NAME == 'main' ? 'main/src/logo.svg' : 'main/src/logo.svg'}"
         DOCKER_HUB_REPO = '3210noop3210'
         WORKING_DIR = 'cicd-pipeline'
     }
