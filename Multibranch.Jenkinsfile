@@ -23,7 +23,7 @@ pipeline {
         stage('Build') {
             steps {
                 dir(env.WORKING_DIR) {
-                    sh 'npm install'
+                    sh 'npm install && npm audit fix'
                 }
             }
         }
