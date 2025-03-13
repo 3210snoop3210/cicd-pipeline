@@ -7,6 +7,7 @@ pipeline {
         PORT = "${BRANCH_NAME == 'main' ? '3000' : '3001'}"
         LOGO_PATH = "${BRANCH_NAME == 'main' ? 'logos/main_logo.svg' : 'logos/dev_logo.svg'}"
         DOCKER_HUB_REPO = '3210noop3210'
+        WORKING_DIR = 'cicd-pipeline'
     }
 
     stages {
@@ -16,11 +17,6 @@ pipeline {
                     sh 'git clone https://$GITHUB_USER:$GITHUB_TOKEN@github.com/3210snoop3210/cicd-pipeline.git -b $BRANCH_NAME'
                 }
             }
-        }
-
-        // Global directory setting
-        script {
-            env.WORKING_DIR = 'cicd-pipeline'
         }
 
         stage('Build') {
