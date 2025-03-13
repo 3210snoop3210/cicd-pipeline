@@ -3,9 +3,9 @@ pipeline {
 
     environment {
         BRANCH_NAME = "${env.GIT_BRANCH}"
-        IMAGE_NAME = BRANCH_NAME == 'main' ? 'nodemain:v1.0' : 'nodedev:v1.0'
-        PORT = BRANCH_NAME == 'main' ? '3000' : '3001'
-        LOGO_PATH = BRANCH_NAME == 'main' ? 'logos/main_logo.svg' : 'logos/dev_logo.svg'
+        IMAGE_NAME = "${BRANCH_NAME == 'main' ? 'nodemain:v1.0' : 'nodedev:v1.0'}"
+        PORT = "${BRANCH_NAME == 'main' ? '3000' : '3001'}"
+        LOGO_PATH = "${BRANCH_NAME == 'main' ? 'logos/main_logo.svg' : 'logos/dev_logo.svg'}"
         DOCKER_HUB_REPO = '3210noop3210'
     }
 
