@@ -10,7 +10,6 @@ pipeline {
         WORKING_DIR = 'cicd-pipeline'
     }
 
-
     stages {
         stage('Checkout') {
             steps {
