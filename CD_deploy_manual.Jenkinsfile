@@ -6,7 +6,7 @@ pipeline {
     }
 
     environment {
-        IMAGE_NAME = "${params.ENV == 'main' ? 'nodemain:v1.0' : 'nodedev:v1.0'}"
+        IMAGE_NAME = "${params.ENV == 'main' ? 'nodemain:latest' : 'nodedev:latest'}"
         PORT = "${params.ENV == 'main' ? '3000' : '3001'}"
         DOCKER_HUB_REPO = '3210noop3210'
         BRANCH_NAME = "${params.ENV == 'main' ? 'main' : 'dev'}"
