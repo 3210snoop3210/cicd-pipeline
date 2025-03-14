@@ -58,8 +58,11 @@ pipeline {
                 script {
                     sh """
                         docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
-                        aquasec/trivy image --debug --scanners vuln --severity HIGH,CRITICAL ${IMAGE_NAME}
+                        aquasec/trivy image --debug --scanners vuln --severity HIGH,CRITICAL \
+                        -f json -o /tmp/trivy-report.json ${IMAGE_NAME}
                     """
+                    // Archive the Trivy scan report
+                    archiveArtifacts allowEmptyArchive: true, artifacts: '/tmp/trivy-report.json', fingerprint: true
                 }
             }
         }
