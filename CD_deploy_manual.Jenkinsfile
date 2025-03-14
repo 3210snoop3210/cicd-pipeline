@@ -25,8 +25,8 @@ pipeline {
             steps {
                 script {
                     sh """
-                    docker stop ${IMAGE_NAME} || true
-                    docker rm ${IMAGE_NAME} || true
+                    docker ps -q --filter "name=${IMAGE_NAME}" | xargs -r docker stop
+                    docker ps -a -q --filter "name=${IMAGE_NAME}" | xargs -r docker rm
                     """
                 }
             }
@@ -34,7 +34,7 @@ pipeline {
 
         stage('Run New Container') {
             steps {
-                sh "docker run -d --name ${IMAGE_NAME} -p ${PORT}:${PORT} ${DOCKER_HUB_REPO}/${IMAGE_NAME}"
+                sh "docker run -d --restart always --name ${IMAGE_NAME} -p ${PORT}:${PORT} ${DOCKER_HUB_REPO}/${IMAGE_NAME}"
             }
         }
     }
