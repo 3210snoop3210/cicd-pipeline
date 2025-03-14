@@ -36,8 +36,8 @@ pipeline {
             steps {
                 script {
                     sh """
-                    docker stop ${IMAGE_NAME} || true
-                    docker rm ${IMAGE_NAME} || true
+                    docker stop ${IMAGE_NAME.split(':')[0]} || true
+                    docker rm ${IMAGE_NAME.split(':')[0]} || true
                     """
                 }
             }
