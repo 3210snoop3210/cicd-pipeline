@@ -5,6 +5,7 @@ pipeline {
         choice(name: 'ENV', choices: ['main', 'dev'], description: 'Choose environment to deploy')
     }
 
+
     environment {
         IMAGE_NAME = "${params.ENV == 'main' ? 'nodemain:latest' : 'nodedev:latest'}"
         PORT = "${params.ENV == 'main' ? '3000' : '3001'}"
