@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         BRANCH_NAME = "${env.GIT_BRANCH}"
-        IMAGE_NAME = "${BRANCH_NAME == 'main' ? 'nodemain:latest' : 'nodedev:latest'}"
+        IMAGE_NAME = "${BRANCH_NAME == 'main' ? 'nodemain:v1.0' : 'nodedev:v1.0'}"
         PORT = "${BRANCH_NAME == 'main' ? '3000' : '3001'}"
         LOGO_PATH = "${BRANCH_NAME == 'main' ? 'src/logo.svg' : 'src/logo.svg'}"
         DOCKER_HUB_REPO = '3210noop3210'
@@ -39,7 +39,7 @@ pipeline {
         stage('Replace Logo') {
             steps {
                 dir(env.WORKING_DIR) {
-                    sh "cp ${LOGO_PATH} public/logo.svg"
+                    sh "cp ${LOGO_PATH} ${BRANCH_NAME}/logo.svg"
                 }
             }
         }
@@ -48,6 +48,17 @@ pipeline {
             steps {
                 dir(env.WORKING_DIR) {
                     sh "docker build -t ${IMAGE_NAME} ."
+                }
+            }
+        }
+
+        stage('Trivy Image Scan') {
+            steps {
+                script {
+                    sh """
+                        docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+                        aquasec/trivy image --exit-code 1 --severity HIGH,CRITICAL ${IMAGE_NAME}:${IMAGE_TAG}
+                    """
                 }
             }
         }
