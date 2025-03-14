@@ -60,9 +60,7 @@ pipeline {
                         docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
                         aquasec/trivy image --debug --scanners vuln --severity HIGH,CRITICAL \
                         -f json -o /tmp/trivy-report.json ${IMAGE_NAME}
-                    """
-                    sh 'docker cp $(docker ps -q -f "ancestor=aquasec/trivy"):/tmp/trivy-report.json ${WORKSPACE}/trivy-report.json'
-                                
+                    """      
                     // Archive the Trivy scan report
                     archiveArtifacts allowEmptyArchive: true, artifacts: 'trivy-report.json', fingerprint: true
                 }
