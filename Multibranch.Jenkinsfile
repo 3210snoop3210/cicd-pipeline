@@ -1,73 +1,58 @@
 pipeline {
     agent any
 
+    parameters {
+        choice(name: 'ENV', choices: ['main', 'dev'], description: 'Choose environment to deploy')
+    }
+
     environment {
-        BRANCH_NAME = "${env.GIT_BRANCH}"
-        IMAGE_NAME = "${BRANCH_NAME == 'main' ? 'nodemain:v1.0' : 'nodedev:v1.0'}"
-        PORT = "${BRANCH_NAME == 'main' ? '3000' : '3001'}"
-        LOGO_PATH = "${BRANCH_NAME == 'main' ? 'src/logo.svg' : 'src/logo.svg'}"
+        IMAGE_NAME = "${params.ENV == 'main' ? 'nodemain:latest' : 'nodedev:latest'}"
+        PORT = "${params.ENV == 'main' ? '3000' : '3001'}"
         DOCKER_HUB_REPO = '3210noop3210'
-        WORKING_DIR = 'cicd-pipeline'
+        BRANCH_NAME = "${params.ENV == 'main' ? 'main' : 'dev'}"
     }
 
     stages {
         stage('Checkout') {
             steps {
-                cleanWs()
+                cleanWs()  // Clean workspace before checkout
                 withCredentials([usernamePassword(credentialsId: 'hithubpat', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
-                    sh 'git clone https://$GITHUB_USER:$GITHUB_TOKEN@github.com/3210snoop3210/cicd-pipeline.git -b $BRANCH_NAME'
+                    // Explicitly check out the correct branch
+                    sh 'git clone --single-branch --branch ${BRANCH_NAME} https://$GITHUB_USER:$GITHUB_TOKEN@github.com/3210snoop3210/cicd-pipeline.git'
                 }
             }
         }
 
-        stage('Build') {
-            steps {
-                dir(env.WORKING_DIR) {
-                    sh 'npm install'
-                }
-            }
-        }
-
-        stage('Test') {
-            steps {
-                dir(env.WORKING_DIR) {
-                    sh 'npm test'
-                }
-            }
-        }
-
-        stage('Replace Logo') {
-            steps {
-                dir(env.WORKING_DIR) {
-                    sh "cp ${LOGO_PATH} public/logo.svg"
-                }
-            }
-        }
-
-        stage('Build Docker Image') {
-            steps {
-                dir(env.WORKING_DIR) {
-                    sh "docker build -t ${IMAGE_NAME} ."
-                }
-            }
-        }
-
-        stage('Push to Docker Hub') {
+        stage('Pull Image from Docker Hub') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    dir(env.WORKING_DIR) {  // Use the global directory variable here
-                        sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-                        sh "docker tag ${IMAGE_NAME} ${DOCKER_HUB_REPO}/${IMAGE_NAME}"
-                        sh "docker push ${DOCKER_HUB_REPO}/${IMAGE_NAME}"
-                    }
+                    sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
+                    sh "docker pull ${DOCKER_HUB_REPO}/${IMAGE_NAME}"
                 }
             }
         }
 
-        stage('Trigger Deployment') {
+        stage('Stop and Remove Old Container') {
             steps {
                 script {
-                    build job: 'CD_deploy_manual', parameters: [string(name: 'ENV', value: BRANCH_NAME)]
+                    def containerName = IMAGE_NAME.split(':')[0]  // Extract base name (without tag)
+                    sh """
+                    if docker ps -a --filter "name=${containerName}" --format '{{.Names}}' | grep -w ${containerName}; then
+                        docker stop ${containerName}
+                        docker rm ${containerName}
+                    else
+                        echo "No container named ${containerName} found."
+                    fi
+                    """
+                }
+            }
+        }
+
+        stage('Run New Container') {
+            steps {
+                script {
+                    def containerName = IMAGE_NAME.split(':')[0]  // Extract base name (without tag)
+                    sh "docker run -d --name ${containerName} -p ${PORT}:${PORT} ${DOCKER_HUB_REPO}/${IMAGE_NAME}"
                 }
             }
         }
