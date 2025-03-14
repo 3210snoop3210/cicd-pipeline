@@ -39,7 +39,7 @@ pipeline {
         stage('Replace Logo') {
             steps {
                 dir(env.WORKING_DIR) {
-                    sh "cp ${LOGO_PATH} ${BRANCH_NAME}/logo.svg"
+                    sh "mkdir -p ${BRANCH_NAME} && cp ${LOGO_PATH} ${BRANCH_NAME}/logo.svg"
                 }
             }
         }
