@@ -35,9 +35,14 @@ pipeline {
         stage('Stop and Remove Old Container') {
             steps {
                 script {
+                    def containerName = IMAGE_NAME.split(':')[0]  // Extract base name (without tag)
                     sh """
-                    docker stop ${IMAGE_NAME.split(':')[0]} || true
-                    docker rm ${IMAGE_NAME.split(':')[0]} || true
+                    if docker ps -a --filter "name=${containerName}" --format '{{.Names}}' | grep -w ${containerName}; then
+                        docker stop ${containerName}
+                        docker rm ${containerName}
+                    else
+                        echo "No container named ${containerName} found."
+                    fi
                     """
                 }
             }
@@ -45,7 +50,10 @@ pipeline {
 
         stage('Run New Container') {
             steps {
-                sh "docker run -d --name ${IMAGE_NAME} -p ${PORT}:${PORT} ${DOCKER_HUB_REPO}/${IMAGE_NAME}"
+                script {
+                    def containerName = IMAGE_NAME.split(':')[0]  // Extract base name (without tag)
+                    sh "docker run -d --name ${containerName} -p ${PORT}:${PORT} ${DOCKER_HUB_REPO}/${IMAGE_NAME}"
+                }
             }
         }
     }
