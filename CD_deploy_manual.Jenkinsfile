@@ -9,9 +9,19 @@ pipeline {
         IMAGE_NAME = params.ENV == 'main' ? 'nodemain:v1.0' : 'nodedev:v1.0'
         PORT = params.ENV == 'main' ? '3000' : '3001'
         DOCKER_HUB_REPO = '3210noop3210'
+        BRANCH_NAME = params.ENV == 'main' ? 'main' : 'dev'
     }
 
     stages {
+        stage('Checkout') {
+            steps {
+                cleanWs()  // Clean workspace before checkout
+                withCredentials([usernamePassword(credentialsId: 'githubpat', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
+                    sh 'git clone https://$GITHUB_USER:$GITHUB_TOKEN@github.com/3210snoop3210/cicd-pipeline.git -b $BRANCH_NAME'
+                }
+            }
+        }
+
         stage('Pull Image from Docker Hub') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
@@ -25,8 +35,8 @@ pipeline {
             steps {
                 script {
                     sh """
-                    docker ps -q --filter "name=${IMAGE_NAME}" | xargs -r docker stop
-                    docker ps -a -q --filter "name=${IMAGE_NAME}" | xargs -r docker rm
+                    docker stop ${IMAGE_NAME} || true
+                    docker rm ${IMAGE_NAME} || true
                     """
                 }
             }
@@ -34,7 +44,7 @@ pipeline {
 
         stage('Run New Container') {
             steps {
-                sh "docker run -d --restart always --name ${IMAGE_NAME} -p ${PORT}:${PORT} ${DOCKER_HUB_REPO}/${IMAGE_NAME}"
+                sh "docker run -d --name ${IMAGE_NAME} -p ${PORT}:${PORT} ${DOCKER_HUB_REPO}/${IMAGE_NAME}"
             }
         }
     }
