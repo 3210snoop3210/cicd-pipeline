@@ -17,7 +17,7 @@ pipeline {
             steps {
                 cleanWs()  // Clean workspace before checkout
                 withCredentials([usernamePassword(credentialsId: 'githubpat', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
-                    sh 'git clone https://$GITHUB_USER:$GITHUB_TOKEN@github.com/3210snoop3210/cicd-pipeline.git -b $BRANCH_NAME'
+                    sh 'git clone --single-branch --branch ${BRANCH_NAME} https://$GITHUB_USER:$GITHUB_TOKEN@github.com/3210snoop3210/cicd-pipeline.git'
                 }
             }
         }
