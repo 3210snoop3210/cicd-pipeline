@@ -67,11 +67,7 @@ pipeline {
         stage('Trigger Deployment') {
             steps {
                 script {
-                    if (BRANCH_NAME == 'main') {
-                        build job: 'Deploy_to_main'
-                    } else {
-                        build job: 'Deploy_to_dev'
-                    }
+                    build job: 'CD_deploy_manual', parameters: [string(name: 'ENV', value: BRANCH_NAME)]
                 }
             }
         }
