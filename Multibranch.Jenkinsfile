@@ -1,58 +1,73 @@
 pipeline {
     agent any
 
-    parameters {
-        choice(name: 'ENV', choices: ['main', 'dev'], description: 'Choose environment to deploy')
-    }
-
     environment {
-        IMAGE_NAME = "${params.ENV == 'main' ? 'nodemain:latest' : 'nodedev:latest'}"
-        PORT = "${params.ENV == 'main' ? '3000' : '3001'}"
+        BRANCH_NAME = "${env.GIT_BRANCH}"
+        IMAGE_NAME = "${BRANCH_NAME == 'main' ? 'nodemain:latest' : 'nodedev:latest'}"
+        PORT = "${BRANCH_NAME == 'main' ? '3000' : '3001'}"
+        LOGO_PATH = "${BRANCH_NAME == 'main' ? 'src/logo.svg' : 'src/logo.svg'}"
         DOCKER_HUB_REPO = '3210noop3210'
-        BRANCH_NAME = "${params.ENV == 'main' ? 'main' : 'dev'}"
+        WORKING_DIR = 'cicd-pipeline'
     }
 
     stages {
         stage('Checkout') {
             steps {
-                cleanWs()  // Clean workspace before checkout
+                cleanWs()
                 withCredentials([usernamePassword(credentialsId: 'hithubpat', usernameVariable: 'GITHUB_USER', passwordVariable: 'GITHUB_TOKEN')]) {
-                    // Explicitly check out the correct branch
-                    sh 'git clone --single-branch --branch ${BRANCH_NAME} https://$GITHUB_USER:$GITHUB_TOKEN@github.com/3210snoop3210/cicd-pipeline.git'
+                    sh 'git clone https://$GITHUB_USER:$GITHUB_TOKEN@github.com/3210snoop3210/cicd-pipeline.git -b $BRANCH_NAME'
                 }
             }
         }
 
-        stage('Pull Image from Docker Hub') {
+        stage('Build') {
+            steps {
+                dir(env.WORKING_DIR) {
+                    sh 'npm install'
+                }
+            }
+        }
+
+        stage('Test') {
+            steps {
+                dir(env.WORKING_DIR) {
+                    sh 'npm test'
+                }
+            }
+        }
+
+        stage('Replace Logo') {
+            steps {
+                dir(env.WORKING_DIR) {
+                    sh "cp ${LOGO_PATH} public/logo.svg"
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                dir(env.WORKING_DIR) {
+                    sh "docker build -t ${IMAGE_NAME} ."
+                }
+            }
+        }
+
+        stage('Push to Docker Hub') {
             steps {
                 withCredentials([usernamePassword(credentialsId: 'dockerhub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-                    sh "docker pull ${DOCKER_HUB_REPO}/${IMAGE_NAME}"
+                    dir(env.WORKING_DIR) {  // Use the global directory variable here
+                        sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
+                        sh "docker tag ${IMAGE_NAME} ${DOCKER_HUB_REPO}/${IMAGE_NAME}"
+                        sh "docker push ${DOCKER_HUB_REPO}/${IMAGE_NAME}"
+                    }
                 }
             }
         }
 
-        stage('Stop and Remove Old Container') {
+        stage('Trigger Deployment') {
             steps {
                 script {
-                    def containerName = IMAGE_NAME.split(':')[0]  // Extract base name (without tag)
-                    sh """
-                    if docker ps -a --filter "name=${containerName}" --format '{{.Names}}' | grep -w ${containerName}; then
-                        docker stop ${containerName}
-                        docker rm ${containerName}
-                    else
-                        echo "No container named ${containerName} found."
-                    fi
-                    """
-                }
-            }
-        }
-
-        stage('Run New Container') {
-            steps {
-                script {
-                    def containerName = IMAGE_NAME.split(':')[0]  // Extract base name (without tag)
-                    sh "docker run -d --name ${containerName} -p ${PORT}:${PORT} ${DOCKER_HUB_REPO}/${IMAGE_NAME}"
+                    build job: 'CD_deploy_manual', parameters: [string(name: 'ENV', value: BRANCH_NAME)]
                 }
             }
         }
