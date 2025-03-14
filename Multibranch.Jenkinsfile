@@ -23,7 +23,7 @@ pipeline {
         stage('Build') {
             steps {
                 dir(env.WORKING_DIR) {
-                    sh 'npm install'
+                    sh 'npm install react@latest react-dom@latest react-scripts@latest && npm run build'
                 }
             }
         }
